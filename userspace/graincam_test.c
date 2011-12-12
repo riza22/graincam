@@ -1,5 +1,5 @@
-#include "../gpio/gpio.h"
-#include "../spi/spi.h"
+#include "gpio.h"
+#include "spi.h"
 #include <poll.h>
 
 #include <sys/types.h>
