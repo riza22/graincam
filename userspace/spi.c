@@ -95,6 +95,51 @@ uint8_t read_spi(){
 	return rx[0];
 }
 
+void read_spib(uint8_t * tx,uint8_t * rx){
+	int ret =0;
+	struct spi_ioc_transfer tr = {
+                .tx_buf = (unsigned long)tx,
+                .rx_buf = (unsigned long)rx,
+                .len = 1,
+                .delay_usecs = delay,
+                .speed_hz = speed,
+                .bits_per_word = bits,
+	};
+	ret = ioctl(spi_fd, SPI_IOC_MESSAGE(1), &tr);
+	if (ret < 1) perror("can't send spi message");
+}
+
+void readn_spib(uint8_t * tx,uint8_t * rx,int n){
+	int ret =0;
+	struct spi_ioc_transfer tr = {
+                .tx_buf = (unsigned long)tx,
+                .rx_buf = (unsigned long)rx,
+                .len = n,
+                .delay_usecs = delay,
+                .speed_hz = speed,
+                .bits_per_word = bits,
+	};
+	ret = ioctl(spi_fd, SPI_IOC_MESSAGE(1), &tr);
+	if (ret < 1) perror("can't send spi message");
+}
+
+uint8_t * readn_spi(int n){
+	int ret =0;
+	uint8_t tx[n];
+	uint8_t rx[n];
+	struct spi_ioc_transfer tr = {
+                .tx_buf = (unsigned long)tx,
+                .rx_buf = (unsigned long)rx,
+                .len = n,
+                .delay_usecs = delay,
+                .speed_hz = speed,
+                .bits_per_word = bits,
+	};
+	ret = ioctl(spi_fd, SPI_IOC_MESSAGE(1), &tr);
+	if (ret < 1) perror("can't send spi message");
+	return rx;
+}
+
 
 int read_spi16(uint8_t * rx){
 	int ret =0;

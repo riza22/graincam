@@ -18,5 +18,7 @@ void close_spi();
 void write_read_spi(uint8_t * tx, uint8_t * rx);
 void write_spi(uint8_t val);
 uint8_t read_spi();
+void read_spib(uint8_t * tx,uint8_t * val);
+uint8_t * readn_spi(int n);
 int read_spi16(uint8_t * rx);
 #endif

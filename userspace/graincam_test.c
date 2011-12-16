@@ -13,11 +13,11 @@
 
 //#define COM_1 			130
 #define COM_3			130
-#define COM_2			131
+//#define COM_2			131
 #define FINE_FRAME		132
 #define STOP			133
 #define FINE_RIGA		134
-#define CC_SPI			135
+#define CC_SPI			131
 #define RESET_FPGA		138
 #define SCARICA_RIGA	139
 
@@ -49,7 +49,7 @@ void init_gpio(){
 
 //	gpio_set_dir(COM_1,GPIO_OUT);
 	gpio_set_dir(COM_3,GPIO_OUT);
-	gpio_set_dir(COM_2,GPIO_OUT);
+	//gpio_set_dir(COM_2,GPIO_OUT);
 	gpio_set_dir(SCARICA_RIGA,GPIO_OUT);
 	gpio_set_dir(CC_SPI,GPIO_OUT);
 	gpio_set_dir(RESET_FPGA,GPIO_OUT);
@@ -158,7 +158,7 @@ void reset_txor(){
 
 void reset_fpga(){
 	GPIO_DATAOUT = GPIO_DATAOUT & 0xFFFFFBFF;
-	usleep(1000);
+	usleep(1);
 	GPIO_DATAOUT = GPIO_DATAOUT | 0x00000400;
 }
 
@@ -222,6 +222,23 @@ IplImage * convert_img(char * buffer){
 	*/
 	return img;
 }
+
+char buffer[1024];
+uint8_t tx[1]={0xC8};
+int8_t rx[1]={0x00};
+uint8_t rx1,tx1=0x00;
+int ctr=0;
+
+inline void read_row(){
+	int i;
+	//for (i=0;i<16;i++){
+		//buffer[ctr++]=read_spi();
+		//readn_spi(tx1,&rx1);
+		readn_spib(tx,rx,8);
+		readn_spib(tx,rx,8);
+		//readn_spi(8);
+	//}
+}
 int main(int args, char ** argv){
 
 
@@ -230,30 +247,35 @@ int main(int args, char ** argv){
 	int i,j, temp;
 	//char C[520]={0xFF,};
 	int fd;
-	int ctr=0;
-	init_spi2(0,8,12000000,0);
+	
+	init_spi2(0,8,48000000,0);
 	init_gpio();
 	init_gpio_mem();
-	char buffer[1024];
+	
 	char frame_name[20];
 	IplImage* img;
 	int id_frame=0;
-	
+	int N = 2;
 	cvNamedWindow("image",0);
 	cvResizeWindow("image",128*4,64*4);
+
 	// initialize the buffer
 	for (i=0;i<1024;i++){
 		buffer[i]=0;
 	}
+	reset_txor();
+	reset_fpga();
+	reset_com3();
+	write_spi(0x19);
+	GPIO_DATAOUT = GPIO_DATAOUT & 0xFFFFFFFB;
 
 	while (1){
 		ctr=0;
-		GPIO_DATAOUT = GPIO_DATAOUT & 0xFFFFFF7F; // cc_spi=0
-		GPIO_DATAOUT = GPIO_DATAOUT & 0xFFFFFFFB; // com_3 =0
+		//GPIO_DATAOUT = GPIO_DATAOUT & 0xFFFFFF7F; // cc_spi=0
+		//GPIO_DATAOUT = GPIO_DATAOUT & 0xFFFFFFFB; // com_3 =0
 		//GPIO_DATAOUT = GPIO_DATAOUT | 0x00000800; // txor =1;
 		
 		reset_txor();
-		reset_fpga();
 		reset_fpga();
 		reset_ccspi();
 	
@@ -261,29 +283,21 @@ int main(int args, char ** argv){
 			if (M_STOP) break;
 		}
 		usleep(150);
-		for (i=0;i<16;i++){
-			buffer[ctr++]=read_spi();
-		}
+		read_row();
 		ctr+=16;
 		for (j=0;j<31;j++){
 			reset_ccspi();
 			reset_txor();
-			for (i=0;i<16;i++){
-				temp*=2;
-				buffer[ctr++]=read_spi();
-				
-			}
+			read_row();
 			ctr+=16;	
 		}
 		reset_txor();
-		usleep(300);
+		usleep(180);
 		ctr=16;
 		for (j=0;j<32;j++){
 			reset_ccspi();
 			reset_txor();
-			for (i=0;i<16;i++){
-				buffer[ctr++]=read_spi();
-			}	
+			read_row();	
 			ctr+=16;
 		}
 		///*
@@ -294,7 +308,7 @@ int main(int args, char ** argv){
 /*		}*/
 /*		printf("\n");*/
 /*		printf("ctr : %d\n",ctr);*/
-/*		printf("frame id:%d\n",id_frame);*/
+		//printf("frame id:%d\n",id_frame);
 		//*/
 
 		img=convert_img(buffer);

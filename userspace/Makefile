@@ -1,6 +1,6 @@
 CXX=g++
 CC=gcc
-CFLAGS=-Wall -pthread -O3 -I/usr/local/include/opencv
+CFLAGS=-Wall -pthread -O3 -I/usr/include/opencv
 LDFLAGS=-lrt -lopencv_core -lopencv_highui 
 CXX_OBJECTS=$(SOURCES:.cpp=.o)
 CC_OBJECTS=$(SOURCES:.c=.o)
