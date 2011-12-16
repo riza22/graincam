@@ -11,15 +11,16 @@
 #include <cv.h>
 
 
-//#define COM_1 			130
 #define COM_3			130
-//#define COM_2			131
 #define FINE_FRAME		132
 #define STOP			133
 #define FINE_RIGA		134
-#define CC_SPI			131
-#define RESET_FPGA		138
-#define SCARICA_RIGA	139
+
+
+
+#define RESET_FPGA		131
+#define SCARICA_RIGA	138
+#define CC_SPI			139
 
 #define GPIO_DATAIN		gpio[0x6038/4]
 #define GPIO_DATAOUT	gpio[0x603C/4]
@@ -151,19 +152,19 @@ int init_gpio_mem(){
 	return 1;
 }
 
-void reset_txor(){
+void reset_ccspi(){
 	GPIO_DATAOUT = GPIO_DATAOUT & 0xFFFFF7FF;
 	GPIO_DATAOUT = GPIO_DATAOUT | 0x00000800;
 }
 
-void reset_fpga(){
+void reset_txor(){
 	GPIO_DATAOUT = GPIO_DATAOUT & 0xFFFFFBFF;
-	usleep(1);
 	GPIO_DATAOUT = GPIO_DATAOUT | 0x00000400;
 }
 
-void reset_ccspi(){
+void reset_fpga(){
 	GPIO_DATAOUT = GPIO_DATAOUT & 0xFFFFFFF7;
+	usleep(1);
 	GPIO_DATAOUT = GPIO_DATAOUT | 0x00000008;
 }
 
@@ -231,13 +232,13 @@ int ctr=0;
 
 inline void read_row(){
 	int i;
-	//for (i=0;i<16;i++){
-		//buffer[ctr++]=read_spi();
+	for (i=0;i<16;i++){
+		buffer[ctr++]=read_spi();
 		//readn_spi(tx1,&rx1);
-		readn_spib(tx,rx,8);
-		readn_spib(tx,rx,8);
+		//readn_spib(tx,rx,8);
+		//readn_spib(tx,rx,8);
 		//readn_spi(8);
-	//}
+	}
 }
 int main(int args, char ** argv){
 
@@ -266,7 +267,8 @@ int main(int args, char ** argv){
 	reset_txor();
 	reset_fpga();
 	reset_com3();
-	write_spi(0x19);
+//	write_spi(0x19); // 5 ms integration time;
+//	write_spi(0x39);
 	GPIO_DATAOUT = GPIO_DATAOUT & 0xFFFFFFFB;
 
 	while (1){
@@ -302,20 +304,19 @@ int main(int args, char ** argv){
 		}
 		///*
 		// print the image as text
-/*		for (i=0;i<1024;i++){*/
-/*			if ((i!=0)&&(i%16==0)) printf("\n");*/
-/*			printf("%s",int2bin(buffer[i], NULL));*/
-/*		}*/
-/*		printf("\n");*/
+		for (i=0;i<1024;i++){
+			if ((i!=0)&&(i%16==0)) printf("\n");
+			printf("%s",int2bin(buffer[i], NULL));
+		}
+		printf("\n");
 /*		printf("ctr : %d\n",ctr);*/
 		//printf("frame id:%d\n",id_frame);
 		//*/
 
 		img=convert_img(buffer);
-
 		cvShowImage("image", img); 
 		cvWaitKey(5);
-		id_frame++;
+	//	id_frame++;
 	}
 	cvReleaseImage(&img);
 	return 0;
