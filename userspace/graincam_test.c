@@ -10,6 +10,7 @@
 #include <time.h>
 #include <cv.h>
 
+#include <string.h>
 
 #define COM_3			130
 #define FINE_FRAME		132
@@ -196,16 +197,45 @@ IplImage * convert_img(char * buffer) {
     uchar* data = (uchar *) img->imageData;
     int step = img->widthStep / sizeof (uchar);
     int i, j, ctr2 = 0;
-    for (i = 0; i < 64; i++) {
+    for (i = 63; i >= 0; i--) {
+        for (j = 127; j >= 0; j -= 8) {
+            data[i * step + j - 7] = 128 - (128 * (buffer[ctr2]&0x80) >> 7);
+            data[i * step + j - 6] = 128 - (128 * (buffer[ctr2]&0x40) >> 6);
+            data[i * step + j - 5] = 128 - (128 * (buffer[ctr2]&0x20) >> 5);
+            data[i * step + j - 4] = 128 - (128 * (buffer[ctr2]&0x10) >> 4);
+            data[i * step + j - 3] = 128 - (128 * (buffer[ctr2]&0x08) >> 3);
+            data[i * step + j - 2] = 128 - (128 * (buffer[ctr2]&0x04) >> 2);
+            data[i * step + j - 1] = 128 - (128 * (buffer[ctr2]&0x02) >> 1);
+            data[i * step + j + 0] = 128 - (128 * (buffer[ctr2]&0x01));
+            ctr2++;
+        }
+    }
+    /*	unsigned temp;
+            for (i=0;i<8192<;i++){
+                    if ((i!=0) && (i%8=0)) ctr2++;
+                    temp=buffer[ctr2];
+                    data[i]=(temp & 1);
+                    temp>>=1;
+            }
+     */
+    return img;
+}
+
+IplImage * convert_img2(char * buffer) {
+    IplImage* img = cvCreateImage(cvSize(128, 64), IPL_DEPTH_8U, 1);
+    uchar* data = (uchar *) img->imageData;
+    int step = img->widthStep / sizeof (uchar);
+    int i, j, ctr2 = 0;
+    for (i = 0; i < 64; i--) {
         for (j = 0; j < 128; j += 8) {
-            data[i * step + j + 0] = 255 * (buffer[ctr2]&0x80) >> 7;
-            data[i * step + j + 1] = 255 * (buffer[ctr2]&0x40) >> 6;
-            data[i * step + j + 2] = 255 * (buffer[ctr2]&0x20) >> 5;
-            data[i * step + j + 3] = 255 * (buffer[ctr2]&0x10) >> 4;
-            data[i * step + j + 4] = 255 * (buffer[ctr2]&0x08) >> 3;
-            data[i * step + j + 5] = 255 * (buffer[ctr2]&0x04) >> 2;
-            data[i * step + j + 6] = 255 * (buffer[ctr2]&0x02) >> 1;
-            data[i * step + j + 7] = 255 * (buffer[ctr2]&0x01);
+            data[i * step + j + 7] = 128 - (128 * (buffer[ctr2]&0x80) >> 7);
+            data[i * step + j + 6] = 128 - (128 * (buffer[ctr2]&0x40) >> 6);
+            data[i * step + j + 5] = 128 - (128 * (buffer[ctr2]&0x20) >> 5);
+            data[i * step + j + 4] = 128 - (128 * (buffer[ctr2]&0x10) >> 4);
+            data[i * step + j + 3] = 128 - (128 * (buffer[ctr2]&0x08) >> 3);
+            data[i * step + j + 2] = 128 - (128 * (buffer[ctr2]&0x04) >> 2);
+            data[i * step + j + 1] = 128 - (128 * (buffer[ctr2]&0x02) >> 1);
+            data[i * step + j + 0] = 128 - (128 * (buffer[ctr2]&0x01));
             ctr2++;
         }
     }
@@ -225,8 +255,8 @@ uint8_t tx[1] = {0xC8};
 int8_t rx[1] = {0x00};
 uint8_t rx1, tx1 = 0x00;
 int ctr = 0;
-uint8_t tx2[8]={0,0,0,0,0,0,0,0};
-uint8_t rx2[8]={0,0,0,0,0,0,0,0};
+uint8_t tx2[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+uint8_t rx2[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 
 inline void read_row() {
     int i;
@@ -245,23 +275,30 @@ inline void read_row() {
 inline void read_row2() {
     int i;
     readn_spib(tx2, rx2, 8);
-    for (i=0;i<8;i++){
-        buffer[ctr++]=rx2[i];
+    for (i = 0; i < 8; i++) {
+        buffer[ctr++] = rx2[i];
     }
     readn_spib(tx2, rx2, 8);
-    for (i=0;i<8;i++){
-        buffer[ctr++]=rx2[i];
+    for (i = 0; i < 8; i++) {
+        buffer[ctr++] = rx2[i];
     }
 
 }
 
+int save = 0;
+
 int main(int args, char ** argv) {
     uint8_t integration_time = 0x19;
-    if (args > 1) {
+    if (args > 2) {
+        integration_time = atoi(argv[1]);
+        save = 1;
+    } else if (args > 1) {
         integration_time = atoi(argv[1]);
     } else {
         integration_time = 10;
     }
+
+    char filename[20];
     uint8_t tx[1] = {0xC8};
     uint8_t rx[1] = {0x00};
     int i, j, temp;
@@ -276,8 +313,8 @@ int main(int args, char ** argv) {
     IplImage* img;
     int id_frame = 0;
     int N = 2;
-    cvNamedWindow("image",0);
-    cvResizeWindow("image",128*4,64*4);
+    cvNamedWindow("image", 0);
+    cvResizeWindow("image", 128 * 4, 64 * 4);
 
     // initialize the buffer
     for (i = 0; i < 1024; i++) {
@@ -335,11 +372,15 @@ int main(int args, char ** argv) {
         //printf("frame id:%d\n",id_frame);
         //*/
 
-        img = convert_img(buffer);
-        cvShowImage("image", img); 
-        cvSaveImage(filename,img);
+        img = convert_img2(buffer);
+        cvShowImage("image", img);
+
+        if (save) {
+            sprintf(filename, "exp/img_%d.bmp", id_frame);
+            cvSaveImage(filename, img);
+        }
         cvWaitKey(5);
-        //id_frame++;
+        id_frame++;
     }
     cvReleaseImage(&img);
     return 0;

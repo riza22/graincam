@@ -21,4 +21,6 @@ uint8_t read_spi();
 void read_spib(uint8_t * tx,uint8_t * val);
 uint8_t * readn_spi(int n);
 int read_spi16(uint8_t * rx);
+void readn_spib(uint8_t * tx,uint8_t * rx,int n);
+
 #endif

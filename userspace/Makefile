@@ -1,17 +1,21 @@
-CXX=g++
-CC=gcc
-CFLAGS=-Wall -pthread -O3 -I/usr/include/opencv
-LDFLAGS=-lrt -lopencv_core -lopencv_highui 
-CXX_OBJECTS=$(SOURCES:.cpp=.o)
-CC_OBJECTS=$(SOURCES:.c=.o)
+CFLAGS = -Wall -pthread -I/usr/include/opencv
+CXXFLAGS = -I/usr/include/opencv
+LDFLAGS = -pthread
+LDLIBS = -lrt -lopencv_core -lopencv_imgproc -lopencv_highgui -lopencv_ml -lopencv_video -lopencv_features2d -lopencv_calib3d -lopencv_objdetect -lopencv_contrib -lopencv_legacy -lopencv_flann
 
-all: graincam_test
+APP=main
+OBJS=main.o gpio.o spi.o graincam.o
 
-graincam_test: graincam_test.o gpio.o spi.o
-	$(CC) -L/usr/lib -o"graincam_test" graincam_test.o gpio.o spi.o -lopencv_highgui -lopencv_core -lrt
-	
-.cpp.o:
-	$(CC) $(CFLAGS) $< -o $@
+$(APP): $(OBJS)
 
 clean:
-	rm -rf *.o graincam_test *.d
+	rm -f *.d *.o $(APP) *~
+
+###################################
+%.d: %.c
+	$(CC) -MM -MF $@ $<
+
+%.o: %.d
+
+-include $(OBJS:.o=.d)
+
